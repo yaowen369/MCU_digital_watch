@@ -1,0 +1,384 @@
+C51 COMPILER V9.01   LCD                                                                   10/07/2011 21:11:17 PAGE 1   
+
+
+C51 COMPILER V9.01, COMPILATION OF MODULE LCD
+OBJECT MODULE PLACED IN lcd.OBJ
+COMPILER INVOKED BY: D:\Program Files\Keil\C51\BIN\C51.EXE lcd.c DEBUG OBJECTEXTEND
+
+line level    source
+
+   1          //±¾ÎÄ¼þ°üÀ¨LCDµÄÈ«²¿Ïà¹Øº¯Êý£¬ÉèÖÃÁËËÄÖÖÄ£Ê½µÄÏÔÊ¾·½Ê½£¨¶¼ÊÇÄÚ²¿º¯Êý£©£¬²¢ÇÒ×îºóÍ¨¹ýÒ»¸ö×ÜµÄlcd_showÀ´¹©Æ
+             -äËûÎÄ¼þµ÷ÓÃ
+   2          //»¹¿É±»ÆäËûÎÄ¼þµ÷ÓÃµÄÊÇlcd_inint()(LCD³õÊ¼»¯º¯Êý)ºÍLCD_backlight()(LCDµÄ±³¹âº¯Êý)
+   3          
+   4          #include<reg52.h>
+   5          #include<string.h>
+   6          #include"head.h"
+   7          
+   8          #define LINE_1  0x80
+   9          #define LINE_2  0xc0
+  10          
+  11          sbit RS = P2^5;            //lcdµÄ¿ØÖÆÐÅºÅ
+  12          sbit RW = P2^6;
+  13          sbit E = P2^7;
+  14          sbit IS_BUSY = P0^7;
+  15          
+  16          //LCDµÄ¼ì²âÊÇ·ñÃ¦µÄº¯Êý£¬
+  17          static void adjust_busy()
+  18          {
+  19   1          uchar temp = 1;
+  20   1              uint i = 100;
+  21   1                      
+  22   1              while (temp && i)
+  23   1              {
+  24   2                  P0 = 0xff;
+  25   2                      E = 0;
+  26   2                      delay(7, 7);
+  27   2                      RS = 0;
+  28   2                      RW = 1; 
+  29   2                      delay(5, 5);
+  30   2                      E = 1;
+  31   2                      delay(5, 5);
+  32   2                      temp = IS_BUSY;
+  33   2                      delay(15, 15);
+  34   2                      E = 0;  
+  35   2                      i--; 
+  36   2              }
+  37   1      }
+  38          
+  39          //LCDµÄÐ´Ö¸Áîº¯Êý
+  40          static void write_command(int com)
+  41          {
+  42   1          adjust_busy();
+  43   1              E = 0;
+  44   1              RS = 0;
+  45   1              RW = 0;
+  46   1              P0 = com;
+  47   1              delay(5, 5);
+  48   1              E = 1;
+  49   1              delay(25, 25);   
+  50   1              E = 0; 
+  51   1      }
+  52          
+  53          //LCDµÄÐ´Êý¾Ýº¯Êý
+  54          static void write_data(int dat)
+C51 COMPILER V9.01   LCD                                                                   10/07/2011 21:11:17 PAGE 2   
+
+  55          {
+  56   1          adjust_busy();
+  57   1              E = 0;
+  58   1              RS = 1;
+  59   1              RW = 0;
+  60   1              P0 = dat;
+  61   1              delay(5, 5);
+  62   1              E = 1;
+  63   1              delay(25, 25);   
+  64   1              E = 0; 
+  65   1      }
+  66          
+  67          //LCDµÄÇåÆÁº¯Êý£¬²¢ÇÒÖØÐÂÉè¶¨
+  68          static void clear()
+  69          {
+  70   1          write_command(0x01);
+  71   1              write_command(0x06);
+  72   1              write_command(0x0c);
+  73   1      }
+  74          
+  75          //-----------------------------ÏÔÊ¾ÓÃµÄÊ±¼äÊý×é,ÐÇÆÚÊý×é-----------------------//
+  76          static uchar code number_list[10] = {"0123456789"};
+  77          static uchar code week_list[7][4]={"Sun ","Mon ","Tues","Wed ","Thur","Fri ","Sat "};
+  78          
+  79          //Ä£Ê½0Õý³£ÏÔÊ¾ »ò Ä£Ê½3ÐÞ¸ÄÊ±¼ä µÄÏÔÊ¾·½Ê½£¬µÚÒ»ÐÐÊ±¼ä£¬µÚ¶þÐÐÏÔÊ¾ÈÕÆÚ 
+  80          static void show_tim_day_mode()
+  81          {   
+  82   1          char str[] = "set";
+  83   1          uint i, size;
+  84   1       
+  85   1      //----µÚÒ»ÐÐ(Ä£Ê½0)ÒÀ´ÎÏÔÊ¾Ð¡Ê±£º·Ö£ºÃë,ÐÇÆÚ£¨Ä£Ê½Èý£©ÏÔÊ¾Ð¡Ê±£º·Ö ÐÇÆÚ-------//
+  86   1          write_command(LINE_1);     
+  87   1      
+  88   1          write_data(number_list[show_hour / 10]);
+  89   1              write_data(number_list[show_hour % 10]);
+  90   1              write_data(':');
+  91   1      
+  92   1              write_data(number_list[show_minute / 10]);
+  93   1              write_data(number_list[show_minute % 10]);
+  94   1              
+  95   1              if (MODE == 0)                                                   
+  96   1              {
+  97   2                  write_data(':');
+  98   2                      write_data(number_list[show_second / 10]);
+  99   2                      write_data(number_list[show_second % 10]);
+ 100   2              }
+ 101   1      
+ 102   1              write_data('\x20');        //¿Õ¸ñ
+ 103   1              write_data('\x20');
+ 104   1              for (i = 0; i < 4; i++)
+ 105   1              {
+ 106   2                  write_data(week_list[show_week][i]);
+ 107   2              }
+ 108   1      
+ 109   1      
+ 110   1      //--------------µÚ¶þÐÐ(Ä£Ê½0»òÕßÄ£Ê½3)ÏÔÊ¾£¨¶þÎ»£©Äê£ºÔÂ£ºÈÕ£¬Ä£Ê½3¶àÏÔÊ¾set-----------------------//
+ 111   1          write_command(LINE_2);     
+ 112   1      
+ 113   1              write_data(number_list[show_year / 1000]);
+ 114   1              write_data(number_list[(show_year % 1000) / 100]);
+ 115   1          write_data(number_list[(show_year %100) / 10]);
+ 116   1              write_data(number_list[(show_year % 100) %10]);
+C51 COMPILER V9.01   LCD                                                                   10/07/2011 21:11:17 PAGE 3   
+
+ 117   1              write_data('-');
+ 118   1      
+ 119   1              write_data(number_list[show_mouth / 10]);
+ 120   1              write_data(number_list[show_mouth % 10]);
+ 121   1          write_data('-');
+ 122   1      
+ 123   1              write_data(number_list[show_day / 10]);
+ 124   1              write_data(number_list[show_day % 10]);   
+ 125   1              
+ 126   1              if (MODE == 3)                                                   
+ 127   1              {       
+ 128   2                  write_data('\x20');            //¿Õ¸ñ
+ 129   2                      write_data('\x20');
+ 130   2                  size = strlen(str);
+ 131   2              for (i = 0; i < size; i++)
+ 132   2                      {
+ 133   3                          write_data(str[i]);
+ 134   3                      }
+ 135   2              }
+ 136   1      }
+ 137          
+ 138          //Ãë±íÄ£Ê½Ê±µÄÏÔÊ¾·½Ê½£¬¼´case1
+ 139          static void show_stopwatch_mode()
+ 140          {         
+ 141   1              uint i, size;  
+ 142   1              char string[] = "stopwatch:s1 set ";
+ 143   1      
+ 144   1          write_command(LINE_1);     //µÚÒ»ÐÐÒÀ´ÎÏÔÊ¾Ð¡Ê±,·Ö,Ãë£¬Ê®·ÖÖ®Ò»Ãë
+ 145   1      
+ 146   1          write_data(number_list[stopwatch_hour / 10]);
+ 147   1              write_data(number_list[stopwatch_hour % 10]);
+ 148   1              write_data(':');
+ 149   1      
+ 150   1              write_data(number_list[stopwatch_minute / 10]);
+ 151   1              write_data(number_list[stopwatch_minute % 10]);
+ 152   1              write_data(':');
+ 153   1      
+ 154   1              write_data(number_list[stopwatch_second / 10]);
+ 155   1              write_data(number_list[stopwatch_second % 10]);
+ 156   1          write_data(':');
+ 157   1      
+ 158   1          write_data(number_list[stopwatch_msec ]);
+ 159   1                        
+ 160   1              size = strlen(string);                   //µÚ¶þÐÐÏÔÊ¾stopweatch mode 
+ 161   1              write_command(LINE_2);                                            
+ 162   1              
+ 163   1      
+ 164   1              for (i = 0; i < size; i++)
+ 165   1              {
+ 166   2                  write_data(string[i]);
+ 167   2              }
+ 168   1                                 
+ 169   1      
+ 170   1      }
+ 171          
+ 172          //Éè¶¨ÄÖÁåÊ±µÄÏÔÊ¾·½Ê½£¬¼´case2
+ 173          static void show_alarm_mode()
+ 174          {
+ 175   1          uint i, size;  
+ 176   1              char str_1[] = "alarm mode";
+ 177   1              char str_2[]= "s1:add  s2:place";
+ 178   1      
+C51 COMPILER V9.01   LCD                                                                   10/07/2011 21:11:17 PAGE 4   
+
+ 179   1          write_command(LINE_1);     //µÚÒ»ÐÐÒÀ´ÎÏÔÊ¾Ð¡Ê±,·Ö, alarm mode
+ 180   1      
+ 181   1          write_data(number_list[alarm_hour / 10]);
+ 182   1              write_data(number_list[alarm_hour % 10]);
+ 183   1              write_data(':');
+ 184   1      
+ 185   1              write_data(number_list[alarm_minute / 10]);
+ 186   1              write_data(number_list[alarm_minute % 10]); 
+ 187   1              
+ 188   1              size = strlen(str_1);                    //µÚÒ»ÐÐ´ÓµÚÁù¸ö¿ªÊ¼ÏÔÊ¾  alarm mode
+ 189   1              write_command(0x86);                                              
+ 190   1              
+ 191   1      
+ 192   1              for (i = 0; i < size; i++)
+ 193   1              {
+ 194   2                  write_data(str_1[i]);
+ 195   2              }  
+ 196   1      
+ 197   1              size = strlen(str_2);                    //µÚ¶þÐÐÏÔÊ¾s1:place   s2:add
+ 198   1              write_command(LINE_2);                                            
+ 199   1              
+ 200   1      
+ 201   1              for (i = 0; i < size; i++)
+ 202   1              {
+ 203   2                  write_data(str_2[i]);
+ 204   2              }  
+ 205   1      }
+ 206          
+ 207          //ÉèÖÃ¿ª¹ØÊ±µÄÏÔÊ¾·½Ê½£¬¼´case4
+ 208          static void show_on_off_mode()
+ 209          {
+ 210   1          uint i, size;       
+ 211   1              char str_1[] = "alarm:";
+ 212   1              char str_2[]= "Whole Speak:";
+ 213   1              char str_on[] = "on";
+ 214   1              char str_off[] = "off"; 
+ 215   1      
+ 216   1          static bit alarm_temp = ON;   //Èç¹ûÄÖÁå»òÕßÕûµã±¨Ê±µÄ×´Ì¬±äÁË£¬¾ÍÇåÆÁÒ»´Î
+ 217   1              static bit speak_temp = ON;
+ 218   1          if ((alarm_flag != alarm_temp) || (whole_speak_flag != speak_temp))
+ 219   1              {
+ 220   2                  clear();
+ 221   2                  alarm_temp = alarm_flag;   
+ 222   2                  speak_temp = whole_speak_flag;
+ 223   2              }
+ 224   1      
+ 225   1      //---------------µÚÒ»ÐÐÏÔÊ¾£¬ÄÖÁåÐ¡Ê±£¬·ÖÖÓ£¬alarm:on/off-------------//
+ 226   1          write_command(LINE_1);     
+ 227   1      
+ 228   1          write_data(number_list[alarm_hour / 10]);
+ 229   1              write_data(number_list[alarm_hour % 10]);
+ 230   1              write_data(':');
+ 231   1      
+ 232   1              write_data(number_list[alarm_minute / 10]);
+ 233   1              write_data(number_list[alarm_minute % 10]); 
+ 234   1              
+ 235   1              size = strlen(str_1);                    //µÚÒ»ÐÐ´ÓµÚÁù¸ö¿ªÊ¼ÏÔÊ¾  alarm 
+ 236   1              write_command(0x86);                                              
+ 237   1              for (i = 0; i < size; i++)
+ 238   1              {
+ 239   2                  write_data(str_1[i]);
+ 240   2              }
+C51 COMPILER V9.01   LCD                                                                   10/07/2011 21:11:17 PAGE 5   
+
+ 241   1      
+ 242   1              if (alarm_flag == ON)              //µÚÒ»ÐÐ´ÓµÚÊ®¶þ¸ö¿ªÊ¼ÏÔÊ¾on»òÕßoff
+ 243   1              {
+ 244   2                  for (i = 0; i < 2; i++)
+ 245   2                      {
+ 246   3                          write_data(str_on[i]);
+ 247   3                      }
+ 248   2              }
+ 249   1              else 
+ 250   1              {
+ 251   2                  for (i = 0; i < 3; i++)
+ 252   2                      {
+ 253   3                          write_data(str_off[i]);
+ 254   3                      }   
+ 255   2              }
+ 256   1      //----------------µÚ¶þÐÐÏÔÊ¾whole speak:on/off------------------//
+ 257   1              size = strlen(str_2);                    
+ 258   1              write_command(LINE_2);                                            
+ 259   1              
+ 260   1      
+ 261   1              for (i = 0; i < size; i++)
+ 262   1              {
+ 263   2                  write_data(str_2[i]);
+ 264   2              }  
+ 265   1      
+ 266   1              if (whole_speak_flag == ON)               
+ 267   1              {
+ 268   2                  for (i = 0; i < 2; i++)
+ 269   2                      {
+ 270   3                          write_data(str_on[i]);
+ 271   3                      }
+ 272   2              }
+ 273   1              else 
+ 274   1              {
+ 275   2                  for (i = 0; i < 3; i++)
+ 276   2                      {
+ 277   3                          write_data(str_off[i]);
+ 278   3                      }   
+ 279   2              }
+ 280   1      }
+ 281          
+ 282          //lcd³õÊ¼»¯º¯Êý
+ 283          void lcd_init()
+ 284          {
+ 285   1          write_command(0x38);      //ÉèÖÃÏÔÊ¾Ä£Ê½¡¢¿ª¹Ø¡¢¹â±êÉèÖÃ
+ 286   1              delay(20, 20);
+ 287   1              write_command(0x0c);
+ 288   1              delay(20, 20);
+ 289   1              write_command(0x06);    
+ 290   1      }
+ 291          
+ 292          //LCDµÄ×ÜÏÔÊ¾º¯Êý
+ 293          void lcd_show()
+ 294          {
+ 295   1          static uchar temp = 0;          //Èç¹ûÏÔÊ¾µÄÄ£Ê½¸Ä±ä£¬ÔòÇåÆÁÒ»´Î
+ 296   1              if (temp != MODE)
+ 297   1              {
+ 298   2                  clear();
+ 299   2                      temp = MODE;
+ 300   2              }
+ 301   1      
+ 302   1          switch (MODE)
+C51 COMPILER V9.01   LCD                                                                   10/07/2011 21:11:17 PAGE 6   
+
+ 303   1              {
+ 304   2                  case 0: show_tim_day_mode();
+ 305   2                      break;
+ 306   2      
+ 307   2                      case 1: 
+ 308   2                      {
+ 309   3                              show_stopwatch_mode();
+ 310   3                              stopwatch_carry(); 
+ 311   3                      }
+ 312   2                      break;
+ 313   2      
+ 314   2                      case 2:  show_alarm_mode();
+ 315   2                      break;
+ 316   2      
+ 317   2                      case 3: show_tim_day_mode();    
+ 318   2                      break;
+ 319   2      
+ 320   2                      case 4: show_on_off_mode();
+ 321   2                      break;
+ 322   2      
+ 323   2                      default: 
+ 324   2                      break;
+ 325   2      
+ 326   2              }
+ 327   1      
+ 328   1      }
+ 329          
+ 330          //-------------¹ØÓÚÒº¾§±³¹âµÄÉèÖÃ-----------------------//
+ 331          sbit backlight= P2^4;            //Òº¾§±³¹â
+ 332          uint backlight_constant = LCD_CONSTANT;   //Í¨¹ýÕâ¸öÊýµÄÑ­»·¼õÉÙ£¬À´ÉèÖÃÒº¾§ÁÁÒ»¶¨Ê±¼ä
+ 333          bit backlight_flag = OFF;                  //ÅÐ¶ÏÒº¾§ÊÇ·ñ´¦ÓÚÁÁµÄ×´Ì¬
+ 334          
+ 335          //LCD±³¹âº¯Êý£¬±£³Ö±³¹âÁÁÒ»¶¨Ê±¼ä
+ 336          void LCD_backlight()
+ 337          {
+ 338   1          if (backlight_constant > 0)
+ 339   1              {
+ 340   2                  backlight_constant--;
+ 341   2                      backlight = 0;
+ 342   2                      backlight_flag = ON;
+ 343   2              }
+ 344   1              else
+ 345   1              {
+ 346   2                  backlight = 1;
+ 347   2                      backlight_flag = OFF;
+ 348   2              }
+ 349   1      }
+ 350          
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =   1628    ----
+   CONSTANT SIZE    =    115    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =      3     100
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =      3    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

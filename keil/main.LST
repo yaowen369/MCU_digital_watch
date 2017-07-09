@@ -1,0 +1,130 @@
+C51 COMPILER V9.01   MAIN                                                                  10/07/2011 21:11:17 PAGE 1   
+
+
+C51 COMPILER V9.01, COMPILATION OF MODULE MAIN
+OBJECT MODULE PLACED IN main.OBJ
+COMPILER INVOKED BY: D:\Program Files\Keil\C51\BIN\C51.EXE main.c DEBUG OBJECTEXTEND
+
+line level    source
+
+   1          //±¾ÎÄ¼þ°üÀ¨Ò»¸öÖ÷º¯Êý£¬Á½¸öÖÐ¶Ïº¯Êý
+   2          
+   3          #include<reg52.h>
+   4          #include"head.h"
+   5          
+   6          static uchar key_down = 0;  //ÉèÖÃ°´¼ü×´Ì¬µÄÈ«¾Ö±äÁ¿(½öÏÞ±¾ÎÄ¼þ)
+   7          
+   8          //Ö÷º¯Êý
+   9          void main()
+  10          {
+  11   1          interrupt_init();
+  12   1              lcd_init();
+  13   1      
+  14   1              while(1)
+  15   1              {
+  16   2                  LCD_backlight();
+  17   2                  time_date_carry();  
+  18   2                      lcd_show();     
+  19   2      
+  20   2                      whole_speak();
+  21   2                      alarm();
+  22   2                      deal_keyboard(key_down);
+  23   2      
+  24   2                      while (key_down)            //±ÜÃâ³¤Ê±¼ä°´¼üµÄÇé¿ö
+  25   2                      {
+  26   3                          ;
+  27   3                      }       
+  28   2              }
+  29   1      }
+  30          
+  31          //ÖÐ¶ÏT0,50msÇý¶¯Ê±¼ä
+  32          void time0() interrupt 1          //T0¹¤×÷·½Ê½1
+  33          {
+  34   1          static uint time0_count = 0;
+  35   1          TH0 = (65535 - 46080) / 256;                
+  36   1              TL0 = (65535 - 46080) % 256;
+  37   1      
+  38   1              time0_count++;
+  39   1              
+  40   1              if (time0_count == 20)
+  41   1              {
+  42   2                  time0_count = 0;
+  43   2                  show_second++;       
+  44   2      
+  45   2                      if (show_second == 60)
+  46   2                      {
+  47   3                          show_second = 0;
+  48   3                              show_minute++;
+  49   3                      }
+  50   2              }                                         
+  51   1      
+  52   1      
+  53   1      //---------ÒÔÏÂÎªÃë±í²¿·Ö-------------//
+  54   1          if (stopwatch_flag == ON)
+  55   1              {
+C51 COMPILER V9.01   MAIN                                                                  10/07/2011 21:11:17 PAGE 2   
+
+  56   2      
+  57   2                  if ((time0_count % 2) == 0)
+  58   2                      {
+  59   3                          stopwatch_msec++;
+  60   3              
+  61   3                              if (stopwatch_msec == 10)
+  62   3                              {
+  63   4                                  stopwatch_msec = 0;
+  64   4                                      stopwatch_second++;
+  65   4                              }
+  66   3                      }
+  67   2              
+  68   2              }
+  69   1      }
+  70          
+  71          //ÖÐ¶ÏT1£¬Ã¿15msÉ¨Ãè¼üÅÌ
+  72          void time1() interrupt 3          //T1¹¤×÷·½Ê½1
+  73          {
+  74   1          TH1 = (65535 - 13824) / 256;        
+  75   1              TL1     = (65535 - 13824) % 256;
+  76   1      
+  77   1              key_down = check_keyboard();
+  78   1      
+  79   1              if ((ringing_flag == ON) && (key_down != 0))        //µ±ÄÖÁåÕýÔÚÏìµÄÊ±ºò£¬°´ÏÂÈÎÒâÒ»¸ö¼ü¾ÍÍ£Ö¹,²»»áÔì³ÉÆäËûÓ
+             -°Ïì
+  80   1              {
+  81   2                  ringing_flag = OFF;
+  82   2                      key_down = 0;
+  83   2              }
+  84   1      
+  85   1              if (backlight_flag == OFF)                         //ÔÚÎÞ±³¹âÇé¿öÏÂ£¬°´ÏÂÈÎÒâÒ»¸ö¼ü£¬¶¼»áÊ¹±³¹âÁÁ£¬¶ø²»»áÔì³ÉÆäËûÓ°Ïì
+  86   1              {
+  87   2                  if (key_down != 0)
+  88   2                      {
+  89   3                          key_down = 4;
+  90   3                      } 
+  91   2              }
+  92   1      }
+  93          
+  94          
+  95          
+  96          
+  97          
+  98          
+  99          
+ 100          
+ 101          
+ 102          
+ 103          
+ 104          
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    213    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =      3    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

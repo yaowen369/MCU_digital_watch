@@ -1,0 +1,8 @@
+"STARTUP.obj",
+"lcd.obj",
+"main.obj",
+"deal.obj",
+"deal2.obj",
+"deal3.obj" 
+TO "µç×Ó±í" 
+RAMSIZE(256) 

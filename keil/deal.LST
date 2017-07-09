@@ -1,0 +1,283 @@
+C51 COMPILER V9.01   DEAL                                                                  10/07/2011 21:11:17 PAGE 1   
+
+
+C51 COMPILER V9.01, COMPILATION OF MODULE DEAL
+OBJECT MODULE PLACED IN deal.OBJ
+COMPILER INVOKED BY: D:\Program Files\Keil\C51\BIN\C51.EXE deal.c DEBUG OBJECTEXTEND
+
+line level    source
+
+   1          //本文件函数主要功能有检测键盘，时间日期的进位，中断的初始化，延时函数
+   2          
+   3          #include<reg52.h>
+   4          #include"head.h"
+   5          
+   6          //定义显示秒，分，小时，日，星期，月，年的全局变量
+   7          uint show_second = 0;
+   8          uint show_minute = 59;
+   9          uint show_hour = 23;
+  10          uint show_day = 5;
+  11          uint show_week = 3;     
+  12          uint show_mouth = 10;
+  13          uint show_year = 2011;
+  14          
+  15          
+  16          //中断初始化，使用T0,T1两个定时器
+  17          void interrupt_init()
+  18          {
+  19   1          EA = 1;
+  20   1              TMOD = 0x11;
+  21   1      
+  22   1              ET0 = 1;      //T0工作方式1，50ms驱动时间
+  23   1              TR0 = 1;
+  24   1              TH0 = (65535 - 46080) / 256;            
+  25   1              TL0 = (65535 - 46080) % 256;
+  26   1      
+  27   1              ET1 = 1;          //T1工作方式1，15ms扫描键盘
+  28   1              TR1 = 1;
+  29   1              TH1 = (65535 - 13824) / 256;        
+  30   1              TL1     = (65535 - 13824) % 256;
+  31   1      }
+  32          
+  33          //判断一个年份是否是闰年,0不是，1是
+  34          static uchar adjust_leap_year()
+  35          {
+  36   1              if (((show_year % 4 == 0) && (show_year % 100 != 0)) || ((show_year % 100 == 0) && (show_year % 400 == 0)
+             -))
+  37   1              {
+  38   2                  return 1;
+  39   2              }
+  40   1              else
+  41   1              {
+  42   2                  return 0;
+  43   2              }
+  44   1      }
+  45          
+  46          //日期,月份的进位
+  47          static void day_mouth_carry()
+  48          {
+  49   1          if (MODE == 0)                       //正常显示时的进位
+  50   1              {
+  51   2                  if ((show_mouth == 2) && (show_day == 29) && (adjust_leap_year() == 0))
+  52   2                      {
+  53   3                          show_mouth = 3;
+  54   3                              show_day = 1;
+C51 COMPILER V9.01   DEAL                                                                  10/07/2011 21:11:17 PAGE 2   
+
+  55   3                              return ;
+  56   3                      }
+  57   2              
+  58   2                      if ((show_mouth == 2) && (show_day == 30) && (adjust_leap_year() == 1))
+  59   2                      {
+  60   3                          show_mouth = 3;
+  61   3                              show_day = 1;
+  62   3                              return ;
+  63   3                      }
+  64   2              
+  65   2                      if (show_day == 31)
+  66   2                      {
+  67   3                          if ((show_mouth == 4) ||(show_mouth == 6) || (show_mouth == 9) || (show_mouth == 11))                                   
+             -            
+  68   3                              {
+  69   4                                  show_mouth++;
+  70   4                                      show_day = 1;
+  71   4                                      return ;
+  72   4                              } 
+  73   3                      }
+  74   2              
+  75   2                      if (show_day == 32)
+  76   2                      {
+  77   3                          if ((show_mouth == 1) ||(show_mouth == 3) || (show_mouth == 5) || (show_mouth == 7) 
+  78   3                                                      || (show_mouth == 8) || (show_mouth == 10) || (show_mouth == 12))
+  79   3                              {
+  80   4                                  show_mouth++;
+  81   4                                      show_day = 1;
+  82   4                                      return ;
+  83   4                              }
+  84   3                      }
+  85   2              }
+  86   1              else                     //在修改时间模式状态(MODE=3)下进位方式，某一位上的不会影响到其他位上
+  87   1              {               
+  88   2                  if ((show_mouth == 2) && (show_day == 29) && (adjust_leap_year() == 0))
+  89   2                      {                          
+  90   3                              show_day = 1;
+  91   3                              return ;
+  92   3                      }
+  93   2              
+  94   2                      if ((show_mouth == 2) && (show_day == 30) && (adjust_leap_year() == 1))
+  95   2                      {
+  96   3                              show_day = 1;
+  97   3                              return ;
+  98   3                      }
+  99   2              
+ 100   2                      if (show_day == 31)
+ 101   2                      {
+ 102   3                          if ((show_mouth == 4) ||(show_mouth == 6) || (show_mouth == 9) || (show_mouth == 11))
+ 103   3                                                      
+ 104   3                                      {
+ 105   4                                              show_day = 1;
+ 106   4                                              return ;
+ 107   4                                      } 
+ 108   3                      }
+ 109   2              
+ 110   2                      if (show_day == 32)
+ 111   2                      {
+ 112   3                          if ((show_mouth == 1) ||(show_mouth == 3) || (show_mouth == 5) || (show_mouth == 7) 
+ 113   3                                                      || (show_mouth == 8) || (show_mouth == 10) || (show_mouth == 12))
+ 114   3                                      {
+ 115   4                                              show_day = 1;
+C51 COMPILER V9.01   DEAL                                                                  10/07/2011 21:11:17 PAGE 3   
+
+ 116   4                                              return ;
+ 117   4                                      }
+ 118   3                      }
+ 119   2                      
+ 120   2                      if (show_day == 33)               //防止出现2月份从三十日之类的开始调整时间的情况
+ 121   2                      {
+ 122   3                          show_day = 1;
+ 123   3                      }                
+ 124   2              }
+ 125   1                 
+ 126   1      }
+ 127          
+ 128          //时间以及日期的进位函数
+ 129          void time_date_carry()
+ 130          {
+ 131   1          if (MODE == 0)      //正常显示时和调整闹铃时的进位方式是不一样的
+ 132   1              {                  
+ 133   2                      if (show_minute == 60)
+ 134   2                      {
+ 135   3                          show_minute = 0;
+ 136   3                              show_hour++;
+ 137   3                      }
+ 138   2              
+ 139   2                      if (show_hour == 24)
+ 140   2                      {
+ 141   3                          show_hour = 0;
+ 142   3                          show_day++;
+ 143   3                              show_week++;
+ 144   3                      }
+ 145   2              
+ 146   2                      if (show_week == 7)
+ 147   2                      {
+ 148   3                          show_week = 0;
+ 149   3                      }
+ 150   2              }                       
+ 151   1              else            //在修改时间即MODE=3时进位方式，某一位的变化不会引起其他位的变化
+ 152   1              {                                                  
+ 153   2                      if (show_minute == 60)
+ 154   2                      {
+ 155   3                          show_minute = 0;
+ 156   3                      }
+ 157   2              
+ 158   2                      if (show_hour == 24)
+ 159   2                      {
+ 160   3                          show_hour = 0;                  
+ 161   3                      }
+ 162   2              
+ 163   2                      if (show_week == 7)
+ 164   2                      {
+ 165   3                          show_week = 0;
+ 166   3                      }               
+ 167   2              }
+ 168   1      
+ 169   1              if (show_day > 28)                //从日到月的进位调用另一个函数
+ 170   1              {
+ 171   2                  day_mouth_carry();
+ 172   2              }
+ 173   1      
+ 174   1          if (MODE == 0)                 //在正常显示（MODE=0）月的进位
+ 175   1              {
+ 176   2                      if (show_mouth == 13)              
+ 177   2                      {
+C51 COMPILER V9.01   DEAL                                                                  10/07/2011 21:11:17 PAGE 4   
+
+ 178   3                          show_year++;
+ 179   3                              show_mouth = 1;
+ 180   3                      }  
+ 181   2              } 
+ 182   1              else             //在修改时间时（MODE=3）时月的进位
+ 183   1              {
+ 184   2                  if (show_mouth == 13)                  
+ 185   2                      {
+ 186   3                              show_mouth = 1;
+ 187   3                      }   
+ 188   2              }
+ 189   1      
+ 190   1              if (show_year == 2100)      
+ 191   1              {
+ 192   2                  show_year = 2000;
+ 193   2              }
+ 194   1      }
+ 195          
+ 196          //检测键盘函数，返回按键的号码
+ 197          uchar check_keyboard()
+ 198          {
+ 199   1          uchar keyboard_num;
+ 200   1      
+ 201   1              switch(P1)
+ 202   1              {
+ 203   2                  case 0xfe: keyboard_num = 1;
+ 204   2                          break;
+ 205   2                  case 0xfd: keyboard_num = 2;
+ 206   2                          break;
+ 207   2                      case 0xfb: keyboard_num = 3;
+ 208   2                          break;
+ 209   2                      case 0xf7: keyboard_num = 4;
+ 210   2                          break;
+ 211   2                      default:   keyboard_num = 0;
+ 212   2              }
+ 213   1      
+ 214   1              return keyboard_num;
+ 215   1      }
+ 216          
+ 217          //延时函数
+ 218          void delay(int x, int y)
+ 219          {
+ 220   1          int i, j;
+ 221   1      
+ 222   1          for (i = 0; i < x; i++)
+ 223   1              {
+ 224   2                  for (j = 0; j < y; j++)
+ 225   2                      {
+ 226   3                          ;
+ 227   3                      }
+ 228   2              }
+ 229   1      }
+ 230          
+ 231          
+ 232          
+ 233          
+ 234          
+ 235          
+ 236          
+ 237          
+ 238          
+ 239          
+C51 COMPILER V9.01   DEAL                                                                  10/07/2011 21:11:17 PAGE 5   
+
+ 240          
+ 241          
+ 242          
+ 243          
+ 244          
+ 245          
+ 246          
+ 247          
+ 248          
+ 249          
+ 250          
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    712    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =     14       1
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

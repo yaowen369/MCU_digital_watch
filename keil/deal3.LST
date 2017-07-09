@@ -1,0 +1,184 @@
+C51 COMPILER V9.01   DEAL3                                                                 10/07/2011 21:11:17 PAGE 1   
+
+
+C51 COMPILER V9.01, COMPILATION OF MODULE DEAL3
+OBJECT MODULE PLACED IN deal3.OBJ
+COMPILER INVOKED BY: D:\Program Files\Keil\C51\BIN\C51.EXE deal3.c DEBUG OBJECTEXTEND
+
+line level    source
+
+   1          //本文件主要是处理闹铃，整点报时，秒表三项功能
+   2          
+   3          #include<reg52.h>
+   4          #include"head.h"
+   5          
+   6          //-------关于秒表部分,秒表精确到十分之一秒-------------------//
+   7          bit stopwatch_flag = OFF;    //秒表是否开启的标志
+   8          uint stopwatch_hour = 0;
+   9          uint stopwatch_minute = 0;
+  10          uint stopwatch_second = 0;
+  11          uint stopwatch_msec = 0;   //百分之一秒
+  12          
+  13          //秒表的进位，秒进位到分,分进位到小时
+  14          void stopwatch_carry()
+  15          {
+  16   1          if (stopwatch_second == 60)
+  17   1              {
+  18   2                  stopwatch_second = 0;
+  19   2                      stopwatch_minute++;
+  20   2              }
+  21   1      
+  22   1              if (stopwatch_minute == 60)
+  23   1              {
+  24   2                  stopwatch_minute = 0;
+  25   2                      stopwatch_hour++;
+  26   2              }
+  27   1      
+  28   1              if (stopwatch_hour == 100)
+  29   1              {
+  30   2                  stopwatch_hour = 0;
+  31   2              }
+  32   1      }
+  33          
+  34          //当不用秒表，即电子表模式不为1时，秒表的各个全局变量的复位
+  35          void stopwatch_reset()
+  36          {
+  37   1          stopwatch_flag = OFF;    
+  38   1          stopwatch_hour = 0;
+  39   1          stopwatch_minute = 0;
+  40   1          stopwatch_second = 0;
+  41   1          stopwatch_msec = 0;   
+  42   1      }
+  43          
+  44          //--------------关于闹铃部分-------------------------//
+  45          bit alarm_flag = OFF;   //判断闹铃是否开启的标志，0关，1开
+  46          uchar alarm_hour = 0;
+  47          uchar alarm_minute = 0;
+  48          uchar ringing_flag = OFF;        //判断闹铃正在响的标志
+  49          
+  50          //判断是否闹铃时间到达
+  51          static uchar adjust_ring()
+  52          {
+  53   1          if ((show_hour == alarm_hour) && (show_minute == alarm_minute))
+  54   1              {
+  55   2                  return 1;
+C51 COMPILER V9.01   DEAL3                                                                 10/07/2011 21:11:17 PAGE 2   
+
+  56   2              }  
+  57   1              else
+  58   1              {
+  59   2                  return 0;
+  60   2              }   
+  61   1      }
+  62          
+  63          sbit buzzer= P2^3;       //蜂鸣器          
+  64          
+  65          //如果闹铃时间到，则蜂鸣器响一段时间,期间有任意键按下就停止，过了这段时间也停止
+  66          void alarm()
+  67          {
+  68   1          uint temp_1, temp_2;
+  69   1          if ((alarm_flag == ON) && (adjust_ring() == 1))
+  70   1              {
+  71   2                  ringing_flag = ON;          
+  72   2                      alarm_flag = OFF;   
+  73   2              }
+  74   1                      
+  75   1          for (temp_1 = 0; temp_1 < 1000; temp_1++)
+  76   1              {  
+  77   2                  for (temp_2 = 0; temp_2 < 1000; temp_2++)
+  78   2                      {
+  79   3                          if (ringing_flag == ON)
+  80   3                              {
+  81   4                                  buzzer = 0; 
+  82   4                              }
+  83   3                              else
+  84   3                              {
+  85   4                                  buzzer = 1;   
+  86   4                                      ringing_flag = OFF;      
+  87   4                                      break; 
+  88   4                              }       
+  89   3                      }
+  90   2                      
+  91   2                      if (ringing_flag == OFF)
+  92   2                      {
+  93   3                          break;
+  94   3                      }                  
+  95   2              } 
+  96   1              
+  97   1              buzzer = 1;                 //如果一直没有键被按下，则最后自动停止响
+  98   1              ringing_flag = OFF;      
+  99   1      }
+ 100          
+ 101          //----------------关于整点报时的设置---------------------//
+ 102          bit whole_speak_flag =OFF;    //是否启动整点报时的标志
+ 103          
+ 104          //整点报时发生函数，每调用一次就报时一次
+ 105          static void speak_once()
+ 106          {
+ 107   1          buzzer = 0;
+ 108   1              delay(400, 400);
+ 109   1              buzzer = 1;
+ 110   1      }
+ 111          
+ 112          //整点报时函数
+ 113          void whole_speak()
+ 114          {
+ 115   1          static uchar speak_times = 100;     //报时的次数，赋予100这个初值是为了不与后面的整点数数相同
+ 116   1          if ((whole_speak_flag == ON) && (show_minute == 0) && (speak_times == 100)) 
+ 117   1              {
+C51 COMPILER V9.01   DEAL3                                                                 10/07/2011 21:11:17 PAGE 3   
+
+ 118   2                  if (show_hour == 0)
+ 119   2                      {
+ 120   3                          speak_times = 24;
+ 121   3                      }
+ 122   2                      else
+ 123   2                      {
+ 124   3                          speak_times = show_hour;
+ 125   3                      }
+ 126   2              }
+ 127   1      
+ 128   1              if ((whole_speak_flag == ON) && (speak_times != 100))
+ 129   1              {
+ 130   2                  if (speak_times > 0)
+ 131   2                      {
+ 132   3                          speak_once();
+ 133   3                              speak_times--;
+ 134   3                      }
+ 135   2                      else
+ 136   2                      {
+ 137   3                          speak_times = 100;
+ 138   3                      }
+ 139   2              }
+ 140   1      }
+ 141          
+ 142          
+ 143          
+ 144          
+ 145          
+ 146          
+ 147          
+ 148          
+ 149          
+ 150          
+ 151          
+ 152          
+ 153          
+ 154          
+ 155          
+ 156          
+ 157          
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    235    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =     12    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =      3    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

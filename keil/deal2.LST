@@ -1,0 +1,254 @@
+C51 COMPILER V9.01   DEAL2                                                                 10/07/2011 21:11:17 PAGE 1   
+
+
+C51 COMPILER V9.01, COMPILATION OF MODULE DEAL2
+OBJECT MODULE PLACED IN deal2.OBJ
+COMPILER INVOKED BY: D:\Program Files\Keil\C51\BIN\C51.EXE deal2.c DEBUG OBJECTEXTEND
+
+line level    source
+
+   1          //本文件只有一个外部函数，键盘处理函数void deal_keyboard(uchar key)，来实现改变模式等各种功能
+   2          
+   3          #include<reg52.h>
+   4          #include"head.h"
+   5          
+   6          
+   7          //程序状态：0为正常，1为秒表，2为闹钟调整,3为时间调整，4显示开关状态
+   8          uchar MODE = 0;      //设置显示状态的全局变量
+   9           
+  10          //键盘的主处理函数，根据按键的状态来改变模式，改变时间日期等全局变量
+  11          void deal_keyboard(uchar key)
+  12          {
+  13   1          static uchar set_time_place = 0;      //MODE=3情况下设定时间的是哪一位，年、月、日、小时还是分.
+  14   1              static uchar set_alarm_place = 0;     //MODE=2情况下，设定调整的是哪一位，小时还是分     
+  15   1              
+  16   1      
+  17   1          switch (MODE)
+  18   1              {
+  19   2                  case 0:                             //模式为0情况,正常显示
+  20   2                      {
+  21   3                          switch (key)
+  22   3                              {
+  23   4                                  case 0:{}    
+  24   4                                      break;
+  25   4      
+  26   4                                      case 1: {}      
+  27   4                                      break;
+  28   4      
+  29   4                                      case 2: MODE = 4; //显示开关状态                                
+  30   4                                      break;
+  31   4      
+  32   4                                      case 3: MODE++; //模式加一，转为秒表状态                                
+  33   4                                      break;
+  34   4      
+  35   4                                      case 4: LCD_START               
+  36   4                                      break;
+  37   4      
+  38   4                                      default:
+  39   4                                      break;
+  40   4                              }
+  41   3                      }
+  42   2                      break;   //case 0 (即MODE = 0)正常显示状态结束
+  43   2      
+  44   2                      case 1:                     //模式为1情况，显示秒表
+  45   2                      {
+  46   3                          switch (key)
+  47   3                              {
+  48   4                                  case 0:     {}  
+  49   4                                      break;
+  50   4      
+  51   4                                      case 1: stopwatch_flag = ~stopwatch_flag;       //按一次开始计时，再次按下时停止,依次循环                                                                                       
+             -        
+  52   4                                      break;
+  53   4      
+  54   4                                      case 2:           //停止计时，返回到正常显示状态
+C51 COMPILER V9.01   DEAL2                                                                 10/07/2011 21:11:17 PAGE 2   
+
+  55   4                                      {
+  56   5                                          stopwatch_reset();
+  57   5                                              MODE = 0;
+  58   5                                      }
+  59   4                                      break;
+  60   4      
+  61   4                                      case 3:                 //模式加1，转为闹铃状态，且自动开启闹铃
+  62   4                                      {
+  63   5                                          stopwatch_reset();
+  64   5                                          MODE++;    
+  65   5                                      }
+  66   4                                      break;
+  67   4      
+  68   4                                      case 4: LCD_START                                                            
+  69   4                                      break;
+  70   4      
+  71   4                                      default:
+  72   4                                      break;
+  73   4                              }
+  74   3                      }
+  75   2                      break;   //case1（即MODE=1），秒表显示方式结束
+  76   2      
+  77   2                      case 2:                     //模式为2情况，闹铃
+  78   2                      {
+  79   3                          switch (key)
+  80   3                              {
+  81   4                                  case 0: {}          
+  82   4                                      break;
+  83   4      
+  84   4                                      case 1:            //所选数字加一
+  85   4                                      {
+  86   5                                          switch (set_alarm_place)
+  87   5                                              {
+  88   6                                                  case 0:                                 //设定闹铃的小时
+  89   6                                                              alarm_hour++;
+  90   6                                                              if (alarm_hour == 24)
+  91   6                                                              {
+  92   7                                                                  alarm_hour = 0;   
+  93   7                                                              }       
+  94   6                                                      break;
+  95   6      
+  96   6                                                      case 1:                                   //设定闹铃的分钟
+  97   6                                                          alarm_minute++;
+  98   6                                                              if (alarm_minute == 60)
+  99   6                                                              {
+ 100   7                                                                  alarm_minute = 0;
+ 101   7                                                              }        
+ 102   6                                                      break;
+ 103   6                                                              
+ 104   6                                                      default: 
+ 105   6                                                      break;                                                  
+ 106   6                                              }
+ 107   5                                      }
+ 108   4                                      break;    
+ 109   4      
+ 110   4                                      case 2:           //更改调整小时或者分钟
+ 111   4                                      {
+ 112   5                                          set_alarm_place++;
+ 113   5                                              if (set_alarm_place == 2)
+ 114   5                                              {
+ 115   6                                                  set_alarm_place = 0;
+ 116   6                                              }
+C51 COMPILER V9.01   DEAL2                                                                 10/07/2011 21:11:17 PAGE 3   
+
+ 117   5                                      }
+ 118   4                                      break;
+ 119   4      
+ 120   4                                      case 3:   MODE++;    //模式加一，转为日期，时间设置                                                                                             
+ 121   4                                      break;
+ 122   4      
+ 123   4                                      case 4:   LCD_START                                                                                             
+ 124   4                                      break;
+ 125   4      
+ 126   4                                      default:
+ 127   4                                      break;
+ 128   4                              }
+ 129   3                      }
+ 130   2                      break;   //case2(即MODE=2),闹铃设置状态结束
+ 131   2      
+ 132   2                      case 3:                         //模式为3情况,调整时间，日期
+ 133   2                      {
+ 134   3                          ET0 = OFF;     //先暂停驱动时间的T0中断
+ 135   3         
+ 136   3                          switch (key)
+ 137   3                              {
+ 138   4                                  case 0:{}             
+ 139   4                                      break;
+ 140   4      
+ 141   4                                      case 1:                  //     按S1所选数字加一。
+ 142   4                                      {
+ 143   5                                          switch (set_time_place)
+ 144   5                                              {
+ 145   6                                                  case 0: show_hour++;             
+ 146   6                                                      break;
+ 147   6      
+ 148   6                                                      case 1: show_minute++;    
+ 149   6                                                      break;
+ 150   6      
+ 151   6                                                      case 2:  show_week++;
+ 152   6                                                      break;
+ 153   6      
+ 154   6                                                      case 3: show_year++;
+ 155   6                                                      break;
+ 156   6      
+ 157   6                                                      case 4: show_mouth++;
+ 158   6                                                      break;
+ 159   6      
+ 160   6                                                      case 5: show_day++;
+ 161   6                                                      break;
+ 162   6      
+ 163   6                                                      default:
+ 164   6                                                      break;                                          
+ 165   6                                              }
+ 166   5                                      }
+ 167   4                                      break;  //case 1: (即switch (set_time_place)) 在所选的位上（小时，分，日等）加一 结束
+ 168   4      
+ 169   4                                      case 2:          //按S2改变依次调整小时，分钟，星期，年，月，日
+ 170   4                                      {
+ 171   5                                          set_time_place++;
+ 172   5                                              if (set_time_place == 6)          
+ 173   5                                              {
+ 174   6                                                  set_time_place = 0;
+ 175   6                                              }
+ 176   5                                      }
+ 177   4                                      break;
+ 178   4      
+C51 COMPILER V9.01   DEAL2                                                                 10/07/2011 21:11:17 PAGE 4   
+
+ 179   4                                      case 3:            // 再按S3到正常显示模式 
+ 180   4                                      {
+ 181   5                                          MODE = 0;
+ 182   5                                              set_time_place = 0;
+ 183   5                                              ET0 = ON;
+ 184   5                                      }
+ 185   4                                      break;
+ 186   4      
+ 187   4                                      case 4:  LCD_START               
+ 188   4                                      break;
+ 189   4      
+ 190   4                                      default:
+ 191   4                                      break;
+ 192   4                              }
+ 193   3                      }
+ 194   2                      break;   //case3(即MODE=3)修改时间,日期  结束
+ 195   2      
+ 196   2                      case 4:                     //模式4(即MODE=4)， 在正常模式下按S2到达开关状态模式
+ 197   2                      {
+ 198   3                          switch (key)
+ 199   3                              {
+ 200   4                                  case 0:{}           
+ 201   4                                      break;
+ 202   4      
+ 203   4                                      case 1:  alarm_flag = ~alarm_flag;// 按S1关闭或者开启闹铃，与之前相反                                                                                   
+ 204   4                                      break;
+ 205   4      
+ 206   4                                      case 2: whole_speak_flag = ~whole_speak_flag;    //按S2开启或者关闭整点报时，与之前相反                                                                         
+ 207   4                                      break;
+ 208   4      
+ 209   4                                      case 3:    MODE = 0; //再按一次按S3返回正常显示                                                                         
+ 210   4                                      break;
+ 211   4      
+ 212   4                                      case 4:    LCD_START                                                                                            
+ 213   4                                      break;
+ 214   4      
+ 215   4                                      default:
+ 216   4                                      break;
+ 217   4                              }
+ 218   3                      }
+ 219   2                      break;   //模式4(即MODE=4),设置（闹铃，整点报时）开关状态  结束
+ 220   2      
+ 221   2                      default:
+ 222   2                      break;
+ 223   2              }    
+ 224   1      } 
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    321    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =      3       1
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)
