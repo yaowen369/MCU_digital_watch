@@ -1,0 +1,2 @@
+# MCU_digital_watch
+单片机项目，使用STC89C52与1602液晶制作的多功能电子表。文件夹包含有Altium Designer的PCB图，proteus isis的仿真图，以及keil编写的C语言代码。
